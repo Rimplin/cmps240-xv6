@@ -103,6 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_getsyscount(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -126,7 +127,12 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_getsyscount] sys_getsyscount
 };
+
+// Array of system call counts (size 64 should be enough as we only have <30 system calls so far
+int syscount[64];
+int numsyscalls = (int)(sizeof(syscalls) / sizeof(syscalls[0]));
 
 void
 syscall(void)
@@ -136,6 +142,10 @@ syscall(void)
 
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    // If num (idx of sys call valid) increment its counter
+    if (num < (int) (sizeof(syscount)/sizeof(syscount[0]))) {
+      syscount[num]++; 
+    }
     curproc->tf->eax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",

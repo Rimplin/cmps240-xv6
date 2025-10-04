@@ -89,3 +89,23 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+extern int syscount[];	 // array mapping systemcall to a count indicationcation a given system call has been called
+extern int numsyscalls;  // The number of system calls defined
+
+// return the counter of how many times
+// a given syscall has been called
+int
+sys_getsyscount(void)
+{
+  int num;
+  if (argint(0, &num) < 0)
+  {
+    return -1;
+  }
+  if (num < 0 || num >= numsyscalls)
+  {
+    return -1;
+  }
+  return syscount[num];
+}

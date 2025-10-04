@@ -79,7 +79,11 @@ main(int argc, char *argv[])
     ls(".");
     exit();
   }
-  for(i=1; i<argc; i++)
-    ls(argv[i]);
+  for(i=1; i<argc; i++){
+    if (strcmp(argv[i], "*") == 0)
+      ls(".");
+    else 
+      ls(argv[i]);
+  }
   exit();
 }
