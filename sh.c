@@ -4,6 +4,8 @@
 #include "user.h"
 #include "fcntl.h"
 
+#define HISTORY_FILE ".sh_history"
+
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -141,6 +143,42 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
+void
+save_to_history(char *buf)
+{
+  int fd;
+  int len;
+  
+  // Don't save empty commands or commands starting with space
+  if (buf[0] == 0 || buf[0] == ' ' || buf[0] == '\n')
+    return;
+  
+  // Don't save the history command itself to avoid clutter
+  if (my_strncmp(buf, "history", 7) == 0)
+    return;
+  
+  // Open history file in append mode (create if doesn't exist)
+  fd = open(HISTORY_FILE, O_WRONLY | O_CREATE);
+  if (fd < 0) {
+    // Silently fail if we can't open history file
+    return;
+  }
+  
+  // Seek to end of file
+  lseek(fd, 0, 2); // SEEK_END = 2
+  
+  // Write command to history file
+  len = strlen(buf);
+  if (len > 0 && buf[len-1] != '\n') {
+    write(fd, buf, len);
+    write(fd, "\n", 1);
+  } else {
+    write(fd, buf, len);
+  }
+  
+  close(fd);
+}
+
 int
 main(void)
 {
@@ -157,6 +195,8 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+    save_to_history(buf);
+  	
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
@@ -490,4 +530,20 @@ nulterminate(struct cmd *cmd)
     break;
   }
   return cmd;
+}
+
+
+
+//my implementation of strncmp
+
+int my_strncmp(const char *s1, const char *s2, int n) {
+    while (n-- > 0) {
+        if (*s1 != *s2)
+            return (unsigned char)*s1 - (unsigned char)*s2;
+        if (*s1 == '\0')  // Stop if null terminator is encountered
+            break;
+        s1++;
+        s2++;
+    }
+    return 0;
 }

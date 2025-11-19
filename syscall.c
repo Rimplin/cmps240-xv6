@@ -104,6 +104,11 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_getsyscount(void);
+extern int sys_gettree(void);
+extern int sys_gethistory(void);
+extern int sys_lseek(void);
+extern int sys_clone(void);
+extern int sys_join(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -127,7 +132,12 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_getsyscount] sys_getsyscount
+[SYS_getsyscount] sys_getsyscount,
+[SYS_gettree] sys_gettree,
+[SYS_gethistory] sys_gethistory,
+[SYS_lseek] sys_lseek,
+[SYS_clone]   sys_clone,
+[SYS_join]    sys_join
 };
 
 // Array of system call counts (size 64 should be enough as we only have <30 system calls so far
