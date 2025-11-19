@@ -185,6 +185,9 @@ UPROGS=\
 	_history\
 	_diff\
 	_testthreads\
+	_search\
+	_find\
+	_split\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -254,8 +257,8 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
-	count.c\
-	printf.c umalloc.c tree.c history.c diff.c testthreads.c\
+	count.c printf.c umalloc.c tree.c history.c diff.c testthreads.c search.c\
+	find.c split.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
