@@ -1,3 +1,5 @@
+#include "pstat.h"
+
 struct buf;
 struct context;
 struct file;
@@ -120,6 +122,13 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int             getpinfo(struct pstat*);
+void            boost_all_priorities(void);
+void            update_wait_times(void);
+int             get_time_slice(int);
+int             should_demote(struct proc*);
+void            demote_process(struct proc*);
+extern 		uint global_ticks;
 
 // swtch.S
 void            swtch(struct context**, struct context*);

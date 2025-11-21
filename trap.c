@@ -8,6 +8,16 @@
 #include "traps.h"
 #include "spinlock.h"
 
+#ifndef SCHED_H
+#define SCHED_H
+
+#define NPRIO 4                  // Number of priority levels (0 = highest)
+#define MAX_TIME_SLICE 4         // Time slices before demotion
+#define BOOST_INTERVAL 100       // Ticks before priority boost
+#define AGING_THRESHOLD 50       // Ticks before aging promotion
+
+#endif
+
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
@@ -54,6 +64,21 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
+    // MLFQ scheduling logic
+    if(myproc() != 0 && myproc()->state == RUNNING){
+      myproc()->total_ticks++;
+      myproc()->time_slices++;
+    
+    // Check if process has used its time slice
+    if(myproc()->time_slices >= MAX_TIME_SLICE) {
+      // Demote process if not at lowest priority
+      if(myproc()->priority < NPRIO - 1) {
+        myproc()->priority++;
+      }
+      myproc()->time_slices = 0;
+      yield();  // Force context switch
+    }
+  }
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:

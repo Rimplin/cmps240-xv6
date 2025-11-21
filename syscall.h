@@ -26,3 +26,4 @@
 #define SYS_lseek 25
 #define SYS_clone 26
 #define SYS_join 27
+#define SYS_getpinfo 28

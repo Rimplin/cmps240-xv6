@@ -50,6 +50,16 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  
+  // MLFQ Scheduling fields
+  int priority;                // Current priority level (0 = highest, NPRIO-1 = lowest)
+  int time_slices;             // Number of time slices used at current priority
+  int wait_time;               // Time spent waiting in ready queue
+  uint ticks_in_queue;         // Ticks spent in current priority queue
+  uint total_ticks;            // Total CPU ticks consumed by this process
+  uint arrival_time;           // When process became RUNNABLE (for response time)
+  uint first_run_time;         // When process first ran (for response time calculation)
+  int times_scheduled;         // Number of times process has been scheduled
 };
 
 // Process memory is laid out contiguously, low addresses first:
