@@ -109,6 +109,7 @@ extern int sys_gethistory(void);
 extern int sys_lseek(void);
 extern int sys_clone(void);
 extern int sys_join(void);
+extern int sys_getpinfo(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -137,7 +138,8 @@ static int (*syscalls[])(void) = {
 [SYS_gethistory] sys_gethistory,
 [SYS_lseek] sys_lseek,
 [SYS_clone]   sys_clone,
-[SYS_join]    sys_join
+[SYS_join]    sys_join,
+[SYS_getpinfo] sys_getpinfo,
 };
 
 // Array of system call counts (size 64 should be enough as we only have <30 system calls so far

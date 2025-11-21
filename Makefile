@@ -188,6 +188,11 @@ UPROGS=\
 	_search\
 	_find\
 	_split\
+	_cpubound\
+	_iobound\
+	_mixedtest\
+	_schedtest\
+	_benchmark\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -258,7 +263,7 @@ EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
 	count.c printf.c umalloc.c tree.c history.c diff.c testthreads.c search.c\
-	find.c split.c\
+	find.c split.c cpubound.c iobound.c mixedtest.c schedtest.c benchmark.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 

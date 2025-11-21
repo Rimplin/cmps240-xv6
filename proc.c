@@ -6,6 +6,12 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
+
+#define NPRIO 4                  // Number of priority levels (0 = highest)
+#define MAX_TIME_SLICE 4         // Time slices before demotion
+#define BOOST_INTERVAL 100       // Ticks before priority boost
+#define AGING_THRESHOLD 50       // Ticks before aging promotion
 
 struct {
   struct spinlock lock;
@@ -89,6 +95,16 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  // Initialize MLFQ scheduling fields
+  p->priority = 0;              // Start at highest priority
+  p->time_slices = 0;           // No time slices used yet
+  p->wait_time = 0;             // No wait time yet
+  p->ticks_in_queue = 0;        // No queue time yet
+  p->total_ticks = 0;           // No CPU time used yet
+  p->arrival_time = ticks;      // Record arrival time
+  p->first_run_time = 0;        // Not run yet
+  p->times_scheduled = 0;       // Not scheduled yet
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -113,6 +129,33 @@ found:
   p->context->eip = (uint)forkret;
 
   return p;
+}
+
+// Get process info for all processes
+// Used by getpinfo system call
+
+int getpinfo(struct pstat* ps)
+{
+  struct proc *p;
+  int i;
+  
+  if(ps == 0)
+    return -1;
+  
+  acquire(&ptable.lock);
+  
+  for(p = ptable.proc, i = 0; p < &ptable.proc[NPROC]; p++, i++){
+    ps->inuse[i] = (p->state != UNUSED);
+    ps->pid[i] = p->pid;
+    ps->priority[i] = p->priority;
+    ps->state[i] = p->state;
+    ps->ticks[i] = p->total_ticks;
+    ps->times_scheduled[i] = p->times_scheduled;
+  }
+  
+  release(&ptable.lock);
+  
+  return 0;
 }
 
 //PAGEBREAK: 32
@@ -433,39 +476,86 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+
+uint global_ticks = 0;
+
 void
 scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+  
   c->proc = 0;
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    // Increment global tick counter for priority boost
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+    global_ticks++;
+    
+    // Priority boost: periodically move all processes to highest priority
+    if(global_ticks >= BOOST_INTERVAL) {
+      boost_all_priorities();
+      global_ticks = 0;
     }
-    release(&ptable.lock);
 
+    // Try to find a runnable process, starting from highest priority
+    int found = 0;
+    for(int prio = 0; prio < NPRIO && !found; prio++) {
+      
+      // Round-robin among processes at the same priority level
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->state != RUNNABLE)
+          continue;
+        
+        if(p->priority != prio)
+          continue;
+
+        // Found a runnable process at this priority level
+        found = 1;
+        
+        // Switch to chosen process. It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        p->time_slices = 0;  // Reset time slice counter for this quantum
+        p->times_scheduled++;
+        
+        // Record first run time for response time calculation
+        if(p->first_run_time == 0)
+          p->first_run_time = ticks;
+
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        
+        // Found and ran a process, so break to start over from highest priority
+        break;
+      }
+    }
+    
+    release(&ptable.lock);
+  }
+}
+
+void
+boost_all_priorities(void)
+{
+  struct proc *p;
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != UNUSED) {
+      p->priority = 0;  // Move to highest priority
+      p->time_slices = 0;
+      p->wait_time = 0;
+    }
   }
 }
 
